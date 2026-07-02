@@ -65,6 +65,7 @@ func TestAuthn(t *testing.T) {
 	// longer reliable and stopped serving a valid registry response, which made
 	// the test fail intermittently and aborted the whole unit-test run. Skip it
 	// until it is rewritten against an in-process mock registry.
+	// TODO: replace with a local httptest mock registry (bearer-token handshake).
 	t.Skip("skipping: depends on unreliable external registry endpoints")
 
 	testCases := []struct {
