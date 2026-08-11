@@ -84,21 +84,25 @@ spec:
         		$params: continue: read.$returns.value.status.state == "ready"
         	}
         }
-        providerBasic: {
+        // The shared credential fields are repeated in each provider below instead of
+        // being embedded from a common struct. `parameter` is a disjunction of these
+        // structs, and CUE's OpenAPI generator cannot resolve an embedding that sits
+        // inside a disjunct: schema generation fails with
+        // "unsupported op . for object type" and the definition never syncs (#5767).
+        #AlibabaProvider: {
         	accessKey!: string
         	secretKey!: string
         	region!:    string
-        }
-        #AlibabaProvider: {
-        	providerBasic
-        	type: "alibaba"
-        	name: *"alibaba-provider" | string
+        	type:       "alibaba"
+        	name:       *"alibaba-provider" | string
         }
         #AWSProvider: {
-        	providerBasic
-        	token: *"" | string
-        	type:  "aws"
-        	name:  *"aws-provider" | string
+        	accessKey!: string
+        	secretKey!: string
+        	region!:    string
+        	token:      *"" | string
+        	type:       "aws"
+        	name:       *"aws-provider" | string
         }
         #AzureProvider: {
         	subscriptionID: string
@@ -108,9 +112,11 @@ spec:
         	name:           *"azure-provider" | string
         }
         #BaiduProvider: {
-        	providerBasic
-        	type: "baidu"
-        	name: *"baidu-provider" | string
+        	accessKey!: string
+        	secretKey!: string
+        	region!:    string
+        	type:       "baidu"
+        	name:       *"baidu-provider" | string
         }
         #ECProvider: {
         	type:   "ec"
