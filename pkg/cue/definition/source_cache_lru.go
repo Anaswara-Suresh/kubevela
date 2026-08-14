@@ -110,8 +110,16 @@ func (s *lruSourceCacheStore) Write(ctx context.Context, cacheKey, sourceType st
 	if err := s.delegate.Write(ctx, cacheKey, sourceType, data, meta); err != nil {
 		return err
 	}
-	// A just-written value is fresh for the whole in-memory window.
-	s.store(cacheKey, data, time.Time{}, s.ttl)
+	// A just-written value is fresh for the whole in-memory window. Record its
+	// persistent-store expiry (now + storageTTL) so a subsequent Layer 1 hit
+	// reports the same expiresAt a Layer 2 read would, rather than the zero
+	// time. Without this, status.expiresAt is empty whenever the in-memory
+	// layer answers.
+	storeExpiresAt := time.Time{}
+	if meta.TTL > 0 {
+		storeExpiresAt = time.Now().Add(meta.TTL)
+	}
+	s.store(cacheKey, data, storeExpiresAt, s.ttl)
 	return nil
 }
 

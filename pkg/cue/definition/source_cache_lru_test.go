@@ -65,6 +65,31 @@ func newTestLRUStore(delegate *fakeSourceCacheStore, ttl time.Duration) *lruSour
 	}
 }
 
+func TestLRUSourceCacheWriteRecordsStoreExpiry(t *testing.T) {
+	sharedSourceLRU.Clear()
+	delegate := &fakeSourceCacheStore{}
+	store := newTestLRUStore(delegate, time.Hour)
+
+	// A fresh resolution is written with the source's effective storageTTL.
+	ttl := 15 * time.Minute
+	before := time.Now()
+	err := store.Write(context.Background(), "key-w", "demo-source",
+		map[string]interface{}{"value": "v"},
+		velaprocess.SourceCacheWriteMeta{TTL: ttl})
+	assert.NoError(t, err)
+
+	// The very next read is a Layer 1 hit; it must report when the persistent
+	// value expires, not the zero time. This is what status.expiresAt surfaces.
+	_, _, found, expiresAt, err := store.Read(context.Background(), "key-w", ttl)
+	assert.NoError(t, err)
+	assert.True(t, found)
+	assert.Equal(t, 0, delegate.reads, "the write should have populated Layer 1")
+	assert.False(t, expiresAt.IsZero(),
+		"a just-written entry must carry its store expiry, not the zero time")
+	assert.WithinDuration(t, before.Add(ttl), expiresAt, time.Minute,
+		"store expiry should be about now + storageTTL")
+}
+
 func TestLRUSourceCacheReadServesFreshFromMemory(t *testing.T) {
 	sharedSourceLRU.Clear()
 	delegate := &fakeSourceCacheStore{
